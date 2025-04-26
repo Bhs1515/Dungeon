@@ -81,7 +81,7 @@ public class Player : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.F))
         {
             Debug.Log("���� Attack �׽�Ʈ");
-            Attack(); // �׽�Ʈ�� ���� ȣ��
+            Attack();
         }
     }
 
@@ -185,19 +185,19 @@ public class Player : MonoBehaviour
 
         _attackPos = transform.position + direction * 1;
 
-        Collider2D[] hit = Physics2D.OverlapCircleAll(_attackPos, _attackRange, 1);
+        Collider2D[] hit = Physics2D.OverlapCircleAll(_attackPos, _attackRange, _targetLayer);
 
         Debug.DrawRay(transform.position, direction * _attackRange, Color.red, 10f);
 
         foreach(Collider2D hitEnemy in hit)
-        if (hitEnemy.GetComponent<Collider>() != null && hitEnemy.GetComponent<Collider>().CompareTag("Enemy"))
+        if (hitEnemy != null && hitEnemy.CompareTag("Enemy"))
         {
 
             Debug.Log("afdsasdf");
 
-            Enemy enemy = hitEnemy.GetComponent<Collider>().GetComponent<Enemy>();
+            Enemy enemy = hitEnemy.GetComponent<Enemy>();
 
-            enemy.TakeDamage(_attackPower);
+            enemy.Hit(_attackPower);
         }
 
         
@@ -213,5 +213,17 @@ public class Player : MonoBehaviour
         }
     }
 
+    private void OnDrawGizmos()
+    {
+        Vector3 attackPos = transform.position + (_spriteRenderer.flipX ? Vector3.left : Vector3.right) * 1;
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(attackPos, _attackRange);
+    }
+
+    public void Hit(int damage)
+    {
+        _healthPoint -= damage;
+    }
 
 }
