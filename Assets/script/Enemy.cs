@@ -24,14 +24,18 @@ public class Enemy : MonoBehaviour
     [SerializeField]
     public Player player;
 
+    [SerializeField]
+    private float _knockbackForce;
+
     private float range = 3f;
     private float wallRange = 1f;
     private float _attackRange = 1f;
 
     private Vector2 direction;
     private Vector2 wallDirection;
-
+    private Vector2 forceDir;
     private Rigidbody2D rb;
+    
 
     private LayerMask detectionLayerMask;
     private LayerMask playerLayerMask;
@@ -48,6 +52,7 @@ public class Enemy : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         detectionLayerMask = LayerMask.GetMask("Detection");
         playerLayerMask = LayerMask.GetMask("Player");
+        player = GameObject.FindGameObjectWithTag("Player").GetComponent<Player>();
     }
 
     // Update is called once per frame
@@ -55,9 +60,11 @@ public class Enemy : MonoBehaviour
     {
         if (hp > 0)
         {
-            if (!_isHit)
+            if (!_isHit && !_isAttack)
             {
-                Move();
+                if (!_isBattle) 
+                    Move();
+
                 Detect();
             }
         }
@@ -65,6 +72,11 @@ public class Enemy : MonoBehaviour
         else
         {
             Die();
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            Attack();
         }
     }
 
@@ -104,15 +116,24 @@ public class Enemy : MonoBehaviour
         Debug.DrawRay(transform.position, direction * _attackRange, Color.red);
 
         if (hit.collider != null)
-        { 
-            if(attack.collider == null)
+        {
+            rand = _spriteRenderer.flipX ? -1 : 1;
+            if (attack.collider != null && attack.collider.CompareTag("Player"))
             {
                 _isBattle = true;
-                rand = _spriteRenderer.flipX ? -1 : 1;
+                
+                if (!_isAttack)
+                {
+                    Attack();
+                }
+                else
+                {
+                    Debug.Log(23232323);
+                }
             }
-            else if(!_isAttack)
+            else
             {
-
+                _isBattle = false;
             }
             
         }
@@ -127,24 +148,33 @@ public class Enemy : MonoBehaviour
     public void Attack()
     {
         _animator.Play("skeletonAttack1");
+        _isAttack = true;
+        
+    }
+
+    public void AttackEnd()
+    {
         player.Hit(_attackPower);
+        _isAttack = false;
     }
 
     public void Hit(int damage)
     {
-        _isHit = true;
+        _isAttack = false;
         rb.linearVelocity = Vector2.zero;
+        _isHit = true;
+        rb.linearDamping = 10;
+        Vector2 knockbackDir = (transform.position - player.transform.position).normalized;
+        rb.linearVelocity = knockbackDir * _knockbackForce;
+
         hp -= damage;
         _animator.Play("skeletonHit");
-
-        StartCoroutine(HitDelay());
-        _animator.Update(0);
     }
 
-    private IEnumerator HitDelay()
+    public void HitEnd()
     {
-        yield return new WaitForSeconds(0.5f);
         _isHit = false;
+        rb.linearDamping = 0;
     }
 
     public void Die()
