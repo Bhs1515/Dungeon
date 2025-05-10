@@ -14,4 +14,9 @@ public class SkeletonAnime : MonoBehaviour
     {
         enemy.HitEnd();
     }
+
+    public void AttackAnimationEnd()
+    {
+        enemy.AttackAnimationEnd();
+    }
 }

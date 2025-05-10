@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Enemy : MonoBehaviour
 {
@@ -27,21 +28,36 @@ public class Enemy : MonoBehaviour
     [SerializeField]
     private float _knockbackForce;
 
-    private float range = 3f;
-    private float wallRange = 1f;
+    [SerializeField]
+    bool _isChase = false;
+
+    [SerializeField]
+    bool _isBattle = false;
+
+    [SerializeField]
+    private float _range = 3f;
+
+    [SerializeField]
     private float _attackRange = 1f;
+
+    [SerializeField]
+    private bool _attackBuffer = false;
+
+    private float wallRange = 1f;
 
     private Vector2 direction;
     private Vector2 wallDirection;
     private Vector2 forceDir;
     private Rigidbody2D rb;
-    
+
+    private RaycastHit2D attack;
+    private RaycastHit2D hit;
+    private RaycastHit2D wall;
 
     private LayerMask detectionLayerMask;
     private LayerMask playerLayerMask;
 
     bool _isHit = false;
-    bool _isBattle = false;
 
     private float _timer;
     
@@ -62,7 +78,7 @@ public class Enemy : MonoBehaviour
         {
             if (!_isHit && !_isAttack)
             {
-                if (!_isBattle) 
+                if(!_isBattle)
                     Move();
 
                 Detect();
@@ -76,7 +92,7 @@ public class Enemy : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.E))
         {
-            Attack();
+            //Attack();
         }
     }
 
@@ -84,7 +100,7 @@ public class Enemy : MonoBehaviour
     {
         _timer += Time.deltaTime;
 
-        if (_timer > 2 && !_isBattle)
+        if (_timer > 2 && !_isChase)
         {
             _timer = 0;
                 rand = Random.Range(0, 3) - 1;
@@ -109,33 +125,32 @@ public class Enemy : MonoBehaviour
 
     private void Detect()
     {
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, range, playerLayerMask);
-        RaycastHit2D attack = Physics2D.Raycast(transform.position, direction, _attackRange, playerLayerMask);
-        RaycastHit2D wall = Physics2D.Raycast(transform.position, wallDirection, wallRange, detectionLayerMask);
-        Debug.DrawRay(transform.position, wallDirection * wallRange, Color.blue);
+        hit = Physics2D.Raycast(transform.position, direction, _range, playerLayerMask);
+        attack = Physics2D.Raycast(transform.position, direction, _attackRange, playerLayerMask);
+        wall = Physics2D.Raycast(transform.position, wallDirection, wallRange, detectionLayerMask);
+        Debug.DrawRay(transform.position, direction * _range, Color.blue);
         Debug.DrawRay(transform.position, direction * _attackRange, Color.red);
 
         if (hit.collider != null)
         {
             rand = _spriteRenderer.flipX ? -1 : 1;
+            _isChase = true;
+
             if (attack.collider != null && attack.collider.CompareTag("Player"))
             {
                 _isBattle = true;
-                
-                if (!_isAttack)
-                {
-                    Attack();
-                }
-                else
-                {
-                    Debug.Log(23232323);
-                }
+                Attack();
             }
             else
             {
                 _isBattle = false;
             }
             
+        }
+        else
+        {
+            _isChase = false;
+            _isBattle = false;
         }
             
         if (wall.collider != null && !wall.collider.CompareTag("Floor"))
@@ -147,15 +162,27 @@ public class Enemy : MonoBehaviour
 
     public void Attack()
     {
-        _animator.Play("skeletonAttack1");
-        _isAttack = true;
-        
+        if (!_isAttack && !_attackBuffer)
+        {
+            Debug.LogWarning(" Attack() »£√‚µ ");
+            _isAttack = true;
+            _animator.Play("skeletonAttack1");
+        }
     }
 
     public void AttackEnd()
     {
-        player.Hit(_attackPower);
+        if (attack.collider != null) 
+            player.Hit(_attackPower);
+    }
+
+    public void AttackAnimationEnd()
+    {
         _isAttack = false;
+        _attackBuffer = true;
+        _animator.Play("skeletonIdle");
+
+        StartCoroutine(ResetAttackBuffer());
     }
 
     public void Hit(int damage)
@@ -186,4 +213,11 @@ public class Enemy : MonoBehaviour
         _spriteRenderer.sortingOrder = 10;
         gameObject.layer = LayerMask.NameToLayer("Dead");
     }
+
+    IEnumerator ResetAttackBuffer()
+    {
+        yield return new WaitForSeconds(0.1f);
+        _attackBuffer = false;
+    }
+
 }
